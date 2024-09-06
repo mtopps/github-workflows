@@ -9,6 +9,15 @@ on:
       GCP_BUCKET:
         required: true
         type: string
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
+        required: false
+      GCP_WORKLOAD_IDENTITY_SA_EMAIL:
+        required: false
+      TOKEN:
+        required: false
+      OWNER:
+        required: false
 
 permissions:
   contents: read
@@ -21,12 +30,28 @@ jobs:
     defaults:
       run:
         working-directory: .
+
     steps:
+      - name: Set Environment Variables
+        run: |
+          if [ -n "${{ secrets.TOKEN }}" ]; then echo "TF_VAR_token=${{ secrets.TOKEN }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.OWNER }}" ]; then echo "TF_VAR_owner=${{ secrets.OWNER }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV; fi
+
       - name: Debug Info
         run: |
           echo "Event Name: ${{ github.event_name }}"
           echo "Branch: ${{ github.ref }}"
           echo "Paths: ${{ github.event.pull_request.changed_files }}"
+          echo "GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
+          echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
+          echo "GCP_BUCKET_PREFIX: ${{ inputs.GCP_BUCKET_PREFIX }}"
+          echo "GCP_BUCKET: ${{ inputs.GCP_BUCKET }}"
+          echo "TF_VAR_token: ${{ env.TF_VAR_token }}"
+          echo "TF_VAR_owner: ${{ env.TF_VAR_owner }}"
+          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
+          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
 
       - uses: actions/checkout@v4.1.7
 
@@ -35,6 +60,9 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
           service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
+
+      - name: Verify Authentication
+        run: gcloud auth list
 
       - uses: hashicorp/setup-terraform@v3.1.2
         with:
@@ -50,7 +78,9 @@ jobs:
 
       - id: plan
         name: Terraform Plan
-        run: terraform plan -no-color -out=tfplan
+        run: |
+          echo "Running Terraform Plan with detailed logging..."
+          terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
         continue-on-error: true
 
       - name: Upload Plan
@@ -96,6 +126,13 @@ jobs:
       run:
         working-directory: .
     steps:
+      - name: Set Environment Variables
+        run: |
+          if [ -n "${{ secrets.TOKEN }}" ]; then echo "TF_VAR_token=${{ secrets.TOKEN }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.OWNER }}" ]; then echo "TF_VAR_owner=${{ secrets.OWNER }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV; fi
+
       - name: Checkout Repository
         uses: actions/checkout@v4.1.7
 
