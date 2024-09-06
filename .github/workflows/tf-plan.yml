@@ -91,8 +91,31 @@ jobs:
           name: tfplan
           path: tfplan
 
-      - name: Upload Terraform Plan Log
-        uses: actions/upload-artifact@v4.4.0
+      - name: Publish Terraform Plan as Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7.0.1
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
-          name: terraform_plan_log
-          path: terraform_plan.log
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
