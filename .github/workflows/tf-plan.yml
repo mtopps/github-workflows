@@ -1,4 +1,4 @@
-name: Terraform Workflow
+name: Terraform Plan and Apply Workflow
 
 on:
   workflow_call:
@@ -11,9 +11,9 @@ on:
         type: string
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
-        required: true
+        required: false
       GCP_WORKLOAD_IDENTITY_SA_EMAIL:
-        required: true
+        required: false
       TOKEN:
         required: false
       OWNER:
@@ -34,28 +34,23 @@ jobs:
     steps:
       - name: Set Environment Variables
         run: |
-
-          # Set TF_VAR environment variables
-          echo "TF_VAR_token=${{ secrets.TOKEN }}" >> $GITHUB_ENV
-          echo "TF_VAR_owner=${{ secrets.OWNER }}" >> $GITHUB_ENV
-          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV
-          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV
-
-      - name: Debug Info
-        run: |
-          echo "Event Name: ${{ github.event_name }}"
-          echo "Branch: ${{ github.ref }}"
-          echo "Paths: ${{ github.event.pull_request.changed_files }}"
-          echo "GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
-          echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
-          echo "GCP_BUCKET_PREFIX: ${{ inputs.GCP_BUCKET_PREFIX }}"
-          echo "GCP_BUCKET: ${{ inputs.GCP_BUCKET }}"
-          echo "TF_VAR_token: ${{ env.TF_VAR_token }}"
-          echo "TF_VAR_owner: ${{ env.TF_VAR_owner }}"
-          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
-          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
+          if [ -n "${{ secrets.TOKEN }}" ]; then echo "TF_VAR_token=${{ secrets.TOKEN }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.OWNER }}" ]; then echo "TF_VAR_owner=${{ secrets.OWNER }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV; fi
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV; fi
 
       - uses: actions/checkout@v4.1.7
+
+      - name: Cache Terraform providers
+        uses: actions/cache@v3
+        with:
+          path: |
+            **/.terraform
+            **/terraform-provider-*
+            **/modules/*
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
 
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2.1.5'
@@ -64,7 +59,15 @@ jobs:
           service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
       - name: Verify Authentication
-        run: gcloud auth list
+        run: |
+          echo "Verifying authentication..."
+          ORG_ID=$(gcloud organizations list --format='value(ID)' --quiet)
+          if [ -z "$ORG_ID" ]; then
+            echo "No organization ID found. Authentication failed."
+            exit 1
+          else
+            echo "Authenticated successfully. Organization ID: $ORG_ID"
+          fi
 
       - uses: hashicorp/setup-terraform@v3.1.2
         with:
@@ -83,6 +86,7 @@ jobs:
         run: |
           echo "Running Terraform Plan with detailed logging..."
           terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
+          awk '/Terraform will perform the following actions:/,0' terraform_plan.log | sed '/Terraform used the selected providers to generate the following execution plan./,$d' > filtered_plan.log
         continue-on-error: true
 
       - name: Upload Plan
@@ -95,19 +99,18 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7.0.1
         env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('filtered_plan.log', 'utf8');
             const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-            
+            #### Terraform Plan 📖
+
             <details><summary>Show Plan</summary>
             
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
+            \`\`\`\n${plan}\n\`\`\`
             
             </details>
             
@@ -118,4 +121,52 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
-            })
+            });
+
+
+  tfsec-checks:
+    runs-on: ubuntu-latest
+    needs: plan
+    steps:
+      - name: Check out Git Repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Run tfsec-checks workflow
+        uses: './.github/workflows/tfsec-checks.yml@main'
+
+
+  on-failure:
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Upload Failed Workflow Log
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: failed-workflow-log
+          path: ${{ github.workspace }}/workflow.log
+
+      - name: Publish Failed Workflow Log as Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('${{ github.workspace }}/workflow.log', 'utf8');
+            const output = `#### Workflow Failed 🚨
+            
+            <details><summary>Show Log</summary>
+            
+            \`\`\`\n${log}\n\`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
