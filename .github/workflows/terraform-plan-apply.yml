@@ -9,11 +9,6 @@ on:
       GCP_BUCKET:
         required: true
         type: string
-    secrets:
-      GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
-        required: true
-      GCP_WORKLOAD_IDENTITY_SA_EMAIL:
-        required: true
 
 permissions:
   contents: read
