@@ -11,7 +11,7 @@ on:
         type: string
       TF_VAR:
         required: false
-        type: object
+        type: string
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
         required: true
@@ -37,11 +37,8 @@ jobs:
           echo "GCP_BUCKET_PREFIX=${{ inputs.GCP_BUCKET_PREFIX }}" >> $GITHUB_ENV
           echo "GCP_BUCKET=${{ inputs.GCP_BUCKET }}" >> $GITHUB_ENV
 
-          # Dynamically set TF_VAR_ environment variables from inputs
-          for key in $(echo "${{ inputs.TF_VAR }}" | jq -r 'keys[]'); do
-            value=$(echo "${{ inputs.TF_VAR }}" | jq -r ".[$key]")
-            echo "TF_VAR_${key}=${value}" >> $GITHUB_ENV
-          done
+          # Parse TF_VAR input as JSON and set environment variables
+          echo "${{ inputs.TF_VAR }}" | jq -r 'to_entries | .[] | "TF_VAR_\(.key)=\(.value)"' >> $GITHUB_ENV
 
       - name: Debug Info
         run: |
