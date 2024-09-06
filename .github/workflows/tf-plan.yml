@@ -62,8 +62,6 @@ jobs:
 
       - id: plan
         name: Terraform Plan
-        env:
-          TF_LOG: DEBUG
         run: |
           echo "Running Terraform Plan with detailed logging..."
           terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
