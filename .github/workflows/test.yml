@@ -9,16 +9,21 @@ on:
       GCP_BUCKET:
         required: true
         type: string
+    secrets:
+        GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
+            required: true
+        GCP_WORKLOAD_IDENTITY_SA_EMAIL:
+            required: true
 
-permissions:
-    contents: read
-    id-token: write
-    pull-requests: write
 
 jobs:
-    my-job:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Set Environment Variables
-              run: |
-                echo "${{ inputs.env_vars }}" >> $GITHUB_ENV
+  my-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Environment Variables
+        run: |
+          echo "BILLING_ACCOUNT=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "ORG_ID=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV
+          echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV
+          echo $GITHUB_ENV
