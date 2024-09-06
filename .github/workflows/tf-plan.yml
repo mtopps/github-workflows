@@ -55,44 +55,44 @@ jobs:
           echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
           echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
 
-    #   - uses: actions/checkout@v4.1.7
+      - uses: actions/checkout@v4.1.7
 
-    #   - name: 'Authenticate to Google Cloud'
-    #     uses: 'google-github-actions/auth@v2.1.5'
-    #     with:
-    #       workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
-    #       service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
+      - name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2.1.5'
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
+          service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
-    #   - name: Verify Authentication
-    #     run: gcloud auth list
+      - name: Verify Authentication
+        run: gcloud auth list
 
-    #   - uses: hashicorp/setup-terraform@v3.1.2
-    #     with:
-    #       terraform_version: 1.9.5
+      - uses: hashicorp/setup-terraform@v3.1.2
+        with:
+          terraform_version: 1.9.5
 
-    #   - id: init
-    #     name: Terraform Init
-    #     run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ inputs.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ inputs.GCP_BUCKET }}"
+      - id: init
+        name: Terraform Init
+        run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ inputs.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ inputs.GCP_BUCKET }}"
 
-    #   - id: validate
-    #     name: Terraform Validate
-    #     run: terraform validate -no-color
+      - id: validate
+        name: Terraform Validate
+        run: terraform validate -no-color
 
-    #   - id: plan
-    #     name: Terraform Plan
-    #     run: |
-    #       echo "Running Terraform Plan with detailed logging..."
-    #       terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
-    #     continue-on-error: true
+      - id: plan
+        name: Terraform Plan
+        run: |
+          echo "Running Terraform Plan with detailed logging..."
+          terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
+        continue-on-error: true
 
-    #   - name: Upload Plan
-    #     uses: actions/upload-artifact@v4.4.0
-    #     with:
-    #       name: tfplan
-    #       path: tfplan
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: tfplan
+          path: tfplan
 
-    #   - name: Upload Terraform Plan Log
-    #     uses: actions/upload-artifact@v4.4.0
-    #     with:
-    #       name: terraform_plan_log
-    #       path: terraform_plan.log
+      - name: Upload Terraform Plan Log
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: terraform_plan_log
+          path: terraform_plan.log
