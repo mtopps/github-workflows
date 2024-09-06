@@ -9,6 +9,18 @@ on:
       GCP_BUCKET:
         required: true
         type: string
+      TF_VAR_token:
+        required: false
+        type: string
+      TF_VAR_owner:
+        required: false
+        type: string
+      TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
+        required: false
+        type: string
+      TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL:
+        required: false
+        type: string
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
         required: true
@@ -26,6 +38,7 @@ jobs:
     defaults:
       run:
         working-directory: .
+
     steps:
       - name: Debug Info
         run: |
@@ -36,6 +49,8 @@ jobs:
           echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
           echo "GCP_BUCKET_PREFIX: ${{ inputs.GCP_BUCKET_PREFIX }}"
           echo "GCP_BUCKET: ${{ inputs.GCP_BUCKET }}"
+          echo "TF_VAR_token: ${{ inputs.TF_VAR_token }}"
+          echo "TF_VAR_owner: ${{ inputs.TF_VAR_owner }}"
 
       - uses: actions/checkout@v4.1.7
 
@@ -66,10 +81,6 @@ jobs:
           echo "Running Terraform Plan with detailed logging..."
           terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
         continue-on-error: true
-
-      - name: Print Terraform Plan Log
-        if: always()
-        run: cat terraform_plan.log
 
       - name: Upload Plan
         uses: actions/upload-artifact@v4.4.0
