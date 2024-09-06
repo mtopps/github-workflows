@@ -3,18 +3,17 @@ name: Terraform Workflow
 on:
   workflow_call:
     inputs:
-      GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
-        required: true
-        type: string
-      GCP_WORKLOAD_IDENTITY_SA_EMAIL:
-        required: true
-        type: string
       GCP_BUCKET_PREFIX:
         required: true
         type: string
       GCP_BUCKET:
         required: true
         type: string
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
+        required: true
+      GCP_WORKLOAD_IDENTITY_SA_EMAIL:
+        required: true
 
 permissions:
   contents: read
@@ -39,8 +38,8 @@ jobs:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2.1.5'
         with:
-          workload_identity_provider: ${{ inputs.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
-          service_account: ${{ inputs.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
+          service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
       - uses: hashicorp/setup-terraform@v3.1.2
         with:
@@ -108,8 +107,8 @@ jobs:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2.1.5'
         with:
-          workload_identity_provider: ${{ inputs.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
-          service_account: ${{ inputs.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
+          service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
       - uses: hashicorp/setup-terraform@v3.1.2
         with:
