@@ -2,7 +2,20 @@ name: Terraform Workflow
 
 on:
   workflow_call:
-    
+    inputs:
+      GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
+        required: true
+        type: string
+      GCP_WORKLOAD_IDENTITY_SA_EMAIL:
+        required: true
+        type: string
+      GCP_BUCKET_PREFIX:
+        required: true
+        type: string
+      GCP_BUCKET:
+        required: true
+        type: string
+
 permissions:
   contents: read
   id-token: write
@@ -26,8 +39,8 @@ jobs:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2.1.5'
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
-          service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
+          workload_identity_provider: ${{ inputs.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
+          service_account: ${{ inputs.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
       - uses: hashicorp/setup-terraform@v3.1.2
         with:
@@ -35,7 +48,7 @@ jobs:
 
       - id: init
         name: Terraform Init
-        run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ vars.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ vars.GCP_BUCKET }}"
+        run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ inputs.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ inputs.GCP_BUCKET }}"
 
       - id: validate
         name: Terraform Validate
@@ -95,15 +108,15 @@ jobs:
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2.1.5'
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
-          service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
+          workload_identity_provider: ${{ inputs.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
+          service_account: ${{ inputs.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
       - uses: hashicorp/setup-terraform@v3.1.2
         with:
           terraform_version: 1.9.5
 
       - name: Terraform Init
-        run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ vars.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ vars.GCP_BUCKET }}"
+        run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ inputs.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ inputs.GCP_BUCKET }}"
 
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4.1.8
