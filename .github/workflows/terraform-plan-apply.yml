@@ -1,4 +1,4 @@
-name: Terraform Workflow
+name: Terraform Plan and Apply Workflow
 
 on:
   workflow_call:
@@ -48,7 +48,15 @@ jobs:
           service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
       - name: Verify Authentication
-        run: gcloud auth list
+        run: |
+          echo "Verifying authentication..."
+          ORG_ID=$(gcloud organizations list --format='value(ID)' --quiet)
+          if [ -z "$ORG_ID" ]; then
+            echo "No organization ID found. Authentication failed."
+            exit 1
+          else
+            echo "Authenticated successfully. Organization ID: $ORG_ID"
+          fi
 
       - uses: hashicorp/setup-terraform@v3.1.2
         with:
@@ -87,7 +95,49 @@ jobs:
             const plan = fs.readFileSync('filtered_plan.log', 'utf8');
             const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\n\`\`\`\n${plan}\n\`\`\`
+            #### Terraform Plan 📖
+
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`\n${plan}\n\`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+  on-failure:
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Upload Failed Workflow Log
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: failed-workflow-log
+          path: ${{ github.workspace }}/workflow.log
+
+      - name: Publish Failed Workflow Log as Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('${{ github.workspace }}/workflow.log', 'utf8');
+            const output = `#### Workflow Failed 🚨
+            
+            <details><summary>Show Log</summary>
+            
+            \`\`\`\n${log}\n\`\`\`
+            
+            </details>
             
             *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
             
