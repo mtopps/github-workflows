@@ -22,8 +22,14 @@ jobs:
     steps:
       - name: Set Environment Variables
         run: |
-          echo "BILLING_ACCOUNT=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "ORG_ID=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "TF_VAR_BILLING_ACCOUNT=${{ needs.terraform.outputs.TF_VAR_BILLING_ACCOUNT }}" >> $GITHUB_ENV
+          echo "TF_VAR_ORG_ID=${{ github.repository_owner }}" >> $GITHUB_ENV
           echo "GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV
           echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV
-          echo "$GITHUB_ENV"
+
+      - name: Print Environment Variables
+        run: |
+          echo "BILLING_ACCOUNT: ${{ env.BILLING_ACCOUNT }}"
+          echo "ORG_ID: ${{ env.ORG_ID }}"
+          echo "GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
+          echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ env.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"

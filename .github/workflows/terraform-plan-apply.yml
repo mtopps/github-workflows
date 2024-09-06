@@ -39,20 +39,6 @@ jobs:
           if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV; fi
           if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV; fi
 
-      - name: Debug Info
-        run: |
-          echo "Event Name: ${{ github.event_name }}"
-          echo "Branch: ${{ github.ref }}"
-          echo "Paths: ${{ github.event.pull_request.changed_files }}"
-          echo "GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
-          echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
-          echo "GCP_BUCKET_PREFIX: ${{ inputs.GCP_BUCKET_PREFIX }}"
-          echo "GCP_BUCKET: ${{ inputs.GCP_BUCKET }}"
-          echo "TF_VAR_token: ${{ env.TF_VAR_token }}"
-          echo "TF_VAR_owner: ${{ env.TF_VAR_owner }}"
-          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
-          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
-
       - uses: actions/checkout@v4.1.7
 
       - name: 'Authenticate to Google Cloud'
@@ -81,6 +67,7 @@ jobs:
         run: |
           echo "Running Terraform Plan with detailed logging..."
           terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
+          awk '/Terraform will perform the following actions:/,0' terraform_plan.log | sed '/Terraform used the selected providers to generate the following execution plan./,$d' > filtered_plan.log
         continue-on-error: true
 
       - name: Upload Plan
@@ -93,21 +80,14 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7.0.1
         env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('filtered_plan.log', 'utf8');
             const output = `#### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-            
-            <details><summary>Show Plan</summary>
-            
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
-            
-            </details>
+            #### Terraform Plan 📖\n\`\`\`\n${plan}\n\`\`\`
             
             *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
             
@@ -116,7 +96,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
-            })
+            });
 
   apply:
     runs-on: ubuntu-latest
