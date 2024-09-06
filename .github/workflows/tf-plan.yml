@@ -9,14 +9,15 @@ on:
       GCP_BUCKET:
         required: true
         type: string
-      TF_VAR:
-        required: false
-        type: string
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
         required: true
       GCP_WORKLOAD_IDENTITY_SA_EMAIL:
         required: true
+      TOKEN:
+        required: false
+      OWNER:
+        required: false
 
 permissions:
   contents: read
@@ -33,12 +34,12 @@ jobs:
     steps:
       - name: Set Environment Variables
         run: |
-          # Set GCP_BUCKET_PREFIX and GCP_BUCKET
-          echo "GCP_BUCKET_PREFIX=${{ inputs.GCP_BUCKET_PREFIX }}" >> $GITHUB_ENV
-          echo "GCP_BUCKET=${{ inputs.GCP_BUCKET }}" >> $GITHUB_ENV
 
-          # Parse TF_VAR input as JSON and set environment variables
-          echo "${{ inputs.TF_VAR }}" | jq -r 'to_entries | .[] | "TF_VAR_\(.key)=\(.value)"' >> $GITHUB_ENV
+          # Set TF_VAR environment variables
+          echo "TF_VAR_token=${{ secrets.TOKEN }}" >> $GITHUB_ENV
+          echo "TF_VAR_owner=${{ secrets.OWNER }}" >> $GITHUB_ENV
+          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV
 
       - name: Debug Info
         run: |
@@ -49,46 +50,49 @@ jobs:
           echo "GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
           echo "GCP_BUCKET_PREFIX: ${{ inputs.GCP_BUCKET_PREFIX }}"
           echo "GCP_BUCKET: ${{ inputs.GCP_BUCKET }}"
-          echo "TF_VAR: ${{ inputs.TF_VAR }}"
+          echo "TF_VAR_token: ${{ env.TF_VAR_token }}"
+          echo "TF_VAR_owner: ${{ env.TF_VAR_owner }}"
+          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}"
+          echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL: ${{ env.TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL }}"
 
-      - uses: actions/checkout@v4.1.7
+    #   - uses: actions/checkout@v4.1.7
 
-      - name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v2.1.5'
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
-          service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
+    #   - name: 'Authenticate to Google Cloud'
+    #     uses: 'google-github-actions/auth@v2.1.5'
+    #     with:
+    #       workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
+    #       service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
-      - name: Verify Authentication
-        run: gcloud auth list
+    #   - name: Verify Authentication
+    #     run: gcloud auth list
 
-      - uses: hashicorp/setup-terraform@v3.1.2
-        with:
-          terraform_version: 1.9.5
+    #   - uses: hashicorp/setup-terraform@v3.1.2
+    #     with:
+    #       terraform_version: 1.9.5
 
-      - id: init
-        name: Terraform Init
-        run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ inputs.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ inputs.GCP_BUCKET }}"
+    #   - id: init
+    #     name: Terraform Init
+    #     run: terraform init -lockfile=readonly -input=false -backend-config="prefix=${{ inputs.GCP_BUCKET_PREFIX }}" -backend-config="bucket=${{ inputs.GCP_BUCKET }}"
 
-      - id: validate
-        name: Terraform Validate
-        run: terraform validate -no-color
+    #   - id: validate
+    #     name: Terraform Validate
+    #     run: terraform validate -no-color
 
-      - id: plan
-        name: Terraform Plan
-        run: |
-          echo "Running Terraform Plan with detailed logging..."
-          terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
-        continue-on-error: true
+    #   - id: plan
+    #     name: Terraform Plan
+    #     run: |
+    #       echo "Running Terraform Plan with detailed logging..."
+    #       terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
+    #     continue-on-error: true
 
-      - name: Upload Plan
-        uses: actions/upload-artifact@v4.4.0
-        with:
-          name: tfplan
-          path: tfplan
+    #   - name: Upload Plan
+    #     uses: actions/upload-artifact@v4.4.0
+    #     with:
+    #       name: tfplan
+    #       path: tfplan
 
-      - name: Upload Terraform Plan Log
-        uses: actions/upload-artifact@v4.4.0
-        with:
-          name: terraform_plan_log
-          path: terraform_plan.log
+    #   - name: Upload Terraform Plan Log
+    #     uses: actions/upload-artifact@v4.4.0
+    #     with:
+    #       name: terraform_plan_log
+    #       path: terraform_plan.log
