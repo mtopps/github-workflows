@@ -1,4 +1,4 @@
-name: Terraform Plan
+name: Terraform Plan - GCP
 
 on:
   workflow_call:
@@ -13,10 +13,6 @@ on:
       GCP_WORKLOAD_IDENTITY_PROVIDER_NAME:
         required: false
       GCP_WORKLOAD_IDENTITY_SA_EMAIL:
-        required: false
-      TOKEN:
-        required: false
-      OWNER:
         required: false
 
 permissions:
@@ -155,23 +151,6 @@ jobs:
               repo: context.repo.repo,
               body: output
             });
-
-
-  checkov:
-    runs-on: self-hosted
-    needs: [plan]
-    steps:
-      - uses: actions/checkout@v4.1.7
-
-      - name: Checkov GitHub Action
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          # This will add both a CLI output to the console and create a results.sarif file
-          output_format: cli,github_failed_only
-          output_file_path: console
-          download_external_modules: true
-          soft_fail: true
-
 
   on-failure:
     runs-on: self-hosted
