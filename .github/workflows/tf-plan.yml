@@ -129,6 +129,7 @@ jobs:
   tfsec:
     name: tfsec PR commenter
     runs-on: ubuntu-latest
+    needs:  [plan]
 
     steps:
       - name: Clone repo
