@@ -48,6 +48,11 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}
           service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
+      - name: Install Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@main
+        with:
+          version: 'latest'
+
       - name: Verify Authentication
         run: |
           echo "Verifying authentication..."
