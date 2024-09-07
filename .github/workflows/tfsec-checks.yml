@@ -2,9 +2,6 @@ name: Tfsec Checks on Terraform Code
 
 on:
   workflow_call:
-    secrets:
-      GITHUB_TOKEN:
-        required: true
 
 permissions: read-all
 
