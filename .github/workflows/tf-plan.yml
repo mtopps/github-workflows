@@ -128,12 +128,14 @@ jobs:
         run: |
           if grep -q "No changes. Your infrastructure matches the configuration." filtered_plan.log; then
             echo "no_changes=true" >> $GITHUB_ENV
+            echo "no_changes=true" >> $GITHUB_OUTPUT
           else
             echo "no_changes=false" >> $GITHUB_ENV
+            echo "no_changes=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Publish Terraform Plan as Comment
-        if: github.event_name == 'pull_request' && env.no_changes == 'false'
+        if: github.event_name == 'pull_request' && steps.check_no_changes.outputs.no_changes == 'false'
         uses: actions/github-script@v7.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
