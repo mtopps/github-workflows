@@ -48,9 +48,6 @@ jobs:
         uses: actions/setup-node@v4.0.3
         with:
           node-version: '20.17.0'
-          cache: 'npm'
-          cache-dependency-path: 'package-lock.json' # Adjust this path if package-lock.json is in a subdirectory
-
 
       - name: Verify Node.js Version
         run: node -v
