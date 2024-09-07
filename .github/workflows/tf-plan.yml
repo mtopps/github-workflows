@@ -23,6 +23,7 @@ permissions:
   contents: read
   id-token: write
   pull-requests: write
+  security-events: write
 
 jobs:
   plan:
@@ -60,7 +61,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3.1.2
         with:
           terraform_version: 1.9.5
-          
+
       - name: Configure Terraform plugin cache
         run: |
           echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
@@ -143,6 +144,8 @@ jobs:
         if: success() || failure()
         with:
           sarif_file: results.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
   on-failure:
