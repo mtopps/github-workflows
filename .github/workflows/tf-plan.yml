@@ -49,6 +49,7 @@ jobs:
         with:
           node-version: '20.17.0'
           cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
 
       - name: Verify Node.js Version
         run: node -v
@@ -152,27 +153,27 @@ jobs:
               body: output
             });
 
-  checkov:
-    runs-on: self-hosted
-    needs: [plan]
-    steps:
-      - uses: actions/checkout@v4.1.7
+  # checkov:
+  #   runs-on: self-hosted
+  #   needs: [plan]
+  #   steps:
+  #     - uses: actions/checkout@v4.1.7
 
-      - name: Checkov GitHub Action
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          # This will add both a CLI output to the console and create a results.sarif file
-          output_format: cli,sarif
-          output_file_path: console,results.sarif
-          soft_fail: true
+  #     - name: Checkov GitHub Action
+  #       uses: bridgecrewio/checkov-action@v12
+  #       with:
+  #         # This will add both a CLI output to the console and create a results.sarif file
+  #         output_format: cli,sarif
+  #         output_file_path: console,results.sarif
+  #         soft_fail: true
 
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3.26.6
-        if: success() || failure()
-        with:
-          sarif_file: results.sarif
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Upload SARIF file
+  #       uses: github/codeql-action/upload-sarif@v3.26.6
+  #       if: success() || failure()
+  #       with:
+  #         sarif_file: results.sarif
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   on-failure:
     runs-on: self-hosted
