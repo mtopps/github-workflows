@@ -42,6 +42,15 @@ jobs:
           if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV; fi
       - name: checkout Source
         uses: actions/checkout@v4.1.7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4.0.3
+        with:
+          node-version: '20.17.0'
+
+
+      - name: Verify Node.js Version
+        run: node -v
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2.1.5'
         with:
@@ -49,7 +58,7 @@ jobs:
           service_account: ${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}
 
       - name: Install Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@main
+        uses: google-github-actions/setup-gcloud@v2.1.1
         with:
           version: 'latest'
 
@@ -131,18 +140,18 @@ jobs:
               body: output
             });
 
-  tfsec:
-    name: tfsec PR commenter
-    runs-on: self-hosted
+  # tfsec:
+  #   name: tfsec PR commenter
+  #   runs-on: self-hosted
 
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@master
-      - name: tfsec
-        uses: aquasecurity/tfsec-pr-commenter-action@v1.2.0
-        with:
-          tfsec_args: --soft-fail
-          github_token: ${{ github.token }}
+  #   steps:
+  #     - name: Clone repo
+  #       uses: actions/checkout@master
+  #     - name: tfsec
+  #       uses: aquasecurity/tfsec-pr-commenter-action@v1.2.0
+  #       with:
+  #         tfsec_args: --soft-fail
+  #         github_token: ${{ github.token }}
 
 
   on-failure:
