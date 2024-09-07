@@ -112,12 +112,14 @@ jobs:
       - id: plan
         name: Terraform Plan
         run: |
-          echo "Running Terraform Plan with detailed logging..."
-          terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
-          exit_code=$?
-          echo "Terraform plan exit code: $exit_code"
-          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
-          awk '/Terraform will perform the following actions:/,0' terraform_plan.log | sed '/Terraform used the selected providers to generate the following execution plan./,$d' > filtered_plan.log
+              echo "Running Terraform Plan with detailed logging..."
+              terraform plan -no-color -out=tfplan -input=false -detailed-exitcode 2>&1 | tee terraform_plan.log
+              exit_code=$?
+              echo "Terraform plan exit code: $exit_code"
+              echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+              if [ $exit_code -eq 2 ]; then
+                awk '/Terraform will perform the following actions:/,0' terraform_plan.log | sed '/Terraform used the selected providers to generate the following execution plan./,$d' > filtered_plan.log
+              fi
         continue-on-error: true
 
       - name: Upload Plan
