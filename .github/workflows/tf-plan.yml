@@ -38,20 +38,8 @@ jobs:
           if [ -n "${{ secrets.OWNER }}" ]; then echo "TF_VAR_owner=${{ secrets.OWNER }}" >> $GITHUB_ENV; fi
           if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_PROVIDER_NAME=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_NAME }}" >> $GITHUB_ENV; fi
           if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" ]; then echo "TF_VAR_GCP_WORKLOAD_IDENTITY_SA_EMAIL=${{ secrets.GCP_WORKLOAD_IDENTITY_SA_EMAIL }}" >> $GITHUB_ENV; fi
-
-      - uses: actions/checkout@v4.1.7
-
-      - name: Cache Terraform providers
-        uses: actions/cache@v3
-        with:
-          path: |
-            **/.terraform
-            **/terraform-provider-*
-            **/modules/*
-          key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
-          restore-keys: |
-            ${{ runner.os }}-terraform-
-
+      - name: checkout Source
+        uses: actions/checkout@v4.1.7
       - name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2.1.5'
         with:
@@ -68,10 +56,23 @@ jobs:
           else
             echo "Authenticated successfully. Organization ID: $ORG_ID"
           fi
-
-      - uses: hashicorp/setup-terraform@v3.1.2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3.1.2
         with:
           terraform_version: 1.9.5
+          
+      - name: Configure Terraform plugin cache
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >>"$GITHUB_ENV"
+          mkdir --parents "$HOME/.terraform.d/plugin-cache"
+      - name: Cache Terraform
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+          key: terraform-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-${{ runner.os }}-
 
       - id: init
         name: Terraform Init
