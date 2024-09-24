@@ -18,6 +18,10 @@ on:
         required: false
       OWNER:
         required: false
+      TF_VAR_INFISICAL_CLIENT_ID:
+        required: false
+      TF_VAR_INFISICAL_CLIENT_SECRET:
+        required: false
 
 permissions:
   contents: read
