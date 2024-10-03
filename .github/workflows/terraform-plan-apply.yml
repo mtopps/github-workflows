@@ -23,35 +23,20 @@ on:
       TF_VAR_INFISICAL_CLIENT_SECRET:
         required: false
 
+  push:
+    branches-ignore:
+      - 'doc/**'
+  pull_request:
+    branches-ignore:
+      - 'doc/**'
+
 permissions:
   contents: read
   id-token: write
   pull-requests: write
 
 jobs:
-  check_branch:
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.check.outputs.should_run }}
-    steps:
-      - name: Check branch name
-        id: check
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BRANCH_NAME="${{ github.head_ref }}"
-          else
-            BRANCH_NAME="${{ github.ref }}"
-          fi
-          
-          if [[ "$BRANCH_NAME" == "doc/"* || "$BRANCH_NAME" == "refs/heads/doc/"* ]]; then
-            echo "should_run=false" >> $GITHUB_OUTPUT
-          else
-            echo "should_run=true" >> $GITHUB_OUTPUT
-          fi
-
   plan:
-    needs: check_branch
-    if: needs.check_branch.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -139,9 +124,8 @@ jobs:
             });
 
   on-failure:
-    needs: [check_branch, plan]
-    if: failure() && needs.check_branch.outputs.should_run == 'true'
     runs-on: ubuntu-latest
+    if: failure()
     steps:
       - name: Upload Failed Workflow Log
         uses: actions/upload-artifact@v4.4.0
@@ -176,12 +160,9 @@ jobs:
             });
 
   apply:
-    needs: [check_branch, plan]
-    if: |
-      needs.check_branch.outputs.should_run == 'true' &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    needs: [plan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     defaults:
       run:
         working-directory: .
