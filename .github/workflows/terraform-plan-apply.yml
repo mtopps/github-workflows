@@ -37,7 +37,13 @@ jobs:
       - name: Check branch name
         id: check
         run: |
-          if [[ "${{ github.ref }}" == refs/heads/doc/* ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH_NAME="${{ github.head_ref }}"
+          else
+            BRANCH_NAME="${{ github.ref }}"
+          fi
+          
+          if [[ "$BRANCH_NAME" == "doc/"* || "$BRANCH_NAME" == "refs/heads/doc/"* ]]; then
             echo "should_run=false" >> $GITHUB_OUTPUT
           else
             echo "should_run=true" >> $GITHUB_OUTPUT
