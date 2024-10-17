@@ -153,7 +153,7 @@ jobs:
             });
 
   on-failure:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: failure()
     steps:
       - name: Upload Failed Workflow Log
@@ -188,61 +188,61 @@ jobs:
               body: output
             });
 
-  checkov:
-    runs-on: self-hosted
-    needs: [plan]
-    steps:
-      - name: Checkout Source
-        uses: actions/checkout@v4.1.7
+  # checkov:
+  #   runs-on: self-hosted
+  #   needs: [plan]
+  #   steps:
+  #     - name: Checkout Source
+  #       uses: actions/checkout@v4.1.7
 
-      - name: Cache External Modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/checkov
-            ~/.checkov
-          key: ${{ runner.os }}-checkov-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-checkov-
+  #     - name: Cache External Modules
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cache/checkov
+  #           ~/.checkov
+  #         key: ${{ runner.os }}-checkov-${{ github.sha }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-checkov-
 
-      - name: Checkov GitHub Action
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          output_format: cli,sarif
-          output_file_path: console,results.sarif
-          download_external_modules: true
-          soft_fail: true
+  #     - name: Checkov GitHub Action
+  #       uses: bridgecrewio/checkov-action@v12
+  #       with:
+  #         output_format: cli,sarif
+  #         output_file_path: console,results.sarif
+  #         download_external_modules: true
+  #         soft_fail: true
 
-      - name: Upload Checkov Results
-        uses: actions/upload-artifact@v4.4.0
-        with:
-          name: checkov-results
-          path: results.sarif
+  #     - name: Upload Checkov Results
+  #       uses: actions/upload-artifact@v4.4.0
+  #       with:
+  #         name: checkov-results
+  #         path: results.sarif
 
-      - name: Publish Checkov Results as Comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          script: |
-            const fs = require('fs');
-            const results = fs.readFileSync('results.sarif', 'utf8');
-            const output = `#### Checkov Scan Results 📊
+  #     - name: Publish Checkov Results as Comment
+  #       if: github.event_name == 'pull_request'
+  #       uses: actions/github-script@v7.0.1
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       with:
+  #         script: |
+  #           const fs = require('fs');
+  #           const results = fs.readFileSync('results.sarif', 'utf8');
+  #           const output = `#### Checkov Scan Results 📊
 
-            <details><summary>Show Results</summary>
+  #           <details><summary>Show Results</summary>
             
-            \`\`\`\n${results}\n\`\`\`
+  #           \`\`\`\n${results}\n\`\`\`
             
-            </details>
+  #           </details>
             
-            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+  #           *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
             
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            });
+  #           github.rest.issues.createComment({
+  #             issue_number: context.issue.number,
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             body: output
+  #           });
 
 
