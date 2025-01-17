@@ -73,9 +73,10 @@ jobs:
         with:
           terraform_version: 1.9.7
 
-      - id: remove providers cache
-        name: Remove providers cache
-        run: rm -rf .terraform
+      - name: Remove providers cache
+        run: |
+          rm -rf .terraform
+          rm -rf .terraform.lock.hcl
 
       - id: init
         name: Terraform Init
